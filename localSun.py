@@ -130,8 +130,6 @@ def angleVectors(M,V): # Calculates the dot product between corresponding vector
 def dotVectors(M,V):
     return sum((M*V).transpose())
                  
-""" THE CLASS localSun """
-
 """
 Takes eccentricity, duration, initial orientation and final orientation
 and returns the array of radii and angles.
@@ -187,6 +185,8 @@ def ellipticalOrbitArb(e, timeVector, theta0 = 0):
     return np.array([radii, angle]) # (If you want, you can return tuple (radii, angle))
 
 timeDict = {"seconds": 1, "minutes": 60, "hours": 3600}
+
+""" THE CLASS localSun """
 
 class localSun:
     
