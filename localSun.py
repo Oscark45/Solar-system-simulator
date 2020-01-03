@@ -4,10 +4,11 @@
 
 """
 Author:     Oscar Kaatranen
-Created:    %(date)$
-Modified:   %(date)$ 
-
+ 
 Description
+
+This is the main file for the simulator. The class parameters given to the localSun class specify the length of year, day, tilt angle etc. 
+Default parameters are the real parameters for Earth.
 
 """
 
