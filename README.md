@@ -4,3 +4,5 @@ I'm creating a simulation of the solar system. Thus far I have Earth orbiting th
 Next step is putting the Earth on an elliptical orbit and seeing how the varying distance also affects the received solar radiation. I'm working on this project every day as a hobby.
 
 The file localSun.py is the main file and the rest use it.
+
+The test files are used for testing how well certain setups agree. For example Test - Vpython Elliptical.py is used to test an elliptical orbit and an animation of the result is shown. Next step is integrating this into the localSun file.
