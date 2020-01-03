@@ -18,11 +18,7 @@ import math as math
 from datetime import datetime
 from scipy.integrate import odeint
 
-#from EllipticalRK4 import 
-
-plt.close('all')
-
-""" STARTS AT THE WINTER SOLSTICE FOR NORTHERN HEMISPHERE """
+""" STARTS AT THE WINTER SOLSTICE FOR NORTHERN HEMISPHERE (2019) """
 
 clat0 = 30
 lon0 = 0
