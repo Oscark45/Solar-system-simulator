@@ -4,11 +4,10 @@
 
 """
 Author:     Oscar Kaatranen
- 
-Description
+Created:    %(date)$
+Modified:   %(date)$ 
 
-This is the main file for the simulator. The class parameters given to the localSun class specify the length of year, day, tilt angle etc. 
-Default parameters are the real parameters for Earth.
+Description
 
 """
 
@@ -17,8 +16,11 @@ import matplotlib.pyplot as plt
 import math as math
 from datetime import datetime
 from scipy.integrate import odeint
+import os
 
-""" STARTS AT THE WINTER SOLSTICE FOR NORTHERN HEMISPHERE (2019) """
+plt.close('all')
+
+""" STARTS AT THE WINTER SOLSTICE FOR NORTHERN HEMISPHERE """
 
 clat0 = 30
 lon0 = 0
@@ -130,37 +132,7 @@ def angleVectors(M,V): # Calculates the dot product between corresponding vector
 def dotVectors(M,V):
     return sum((M*V).transpose())
                  
-"""
-Takes eccentricity, duration, initial orientation and final orientation
-and returns the array of radii and angles.
-"""
-
-def ellipticalOrbit(e, duration, theta0 = 0, thetaF = 2*np.pi):
-    
-    """ 
-    Parameters:
-    e: eccentricity
-    duration: duration in some units (seconds, minutes, hours or what ever)
-    theta0: initial angle, normally 0
-    thetaF: final angle, normally 2*pi
-    
-    With this setup and normalized units the time of one orbit is T=2*pi 
-    """
-    
-    # Helper functions. Both assume semi-major axis 1.
-    def planetFunction(theta, time, e): # Differential equation for elliptical orbit
-        return (1 + e * np.cos(theta))**2 / (1 - e**2)**(3/2)
-    def polarEllipse(theta, e): # Polar equation of an ellipse
-        return (1-e**2)/(1+e*np.cos(theta))
-        
-    # The total angle vector from theta0 to thetaF. Default 0 to 2*pi with duration amount of entries
-    timeVector = np.linspace(theta0, thetaF, int(duration)) # Time steps
-    angle = odeint(planetFunction, theta0, timeVector, args = (e,)) # Final angle vector
-    radii = polarEllipse(angle, e) # Radial components
-    
-    return np.array([radii, angle]) # (If you want, you can return tuple (radii, angle))
-
-def ellipticalOrbitArb(e, timeVector, theta0 = 0):
+def ellipticalOrbit(e, timeVector, theta0 = 0):
     
     """ 
     Parameters:
@@ -180,13 +152,13 @@ def ellipticalOrbitArb(e, timeVector, theta0 = 0):
         timeVector = np.insert(timeVector, 0, 0)
 
     angle = odeint(planetFunction, theta0, timeVector, args = (e,)) # Final angle vector
-    radii = polarEllipse(angle, e) # Radial components
     
-    return np.array([radii, angle]) # (If you want, you can return tuple (radii, angle))
+    return angle #
 
-timeDict = {"seconds": 1, "minutes": 60, "hours": 3600}
 
 """ THE CLASS localSun """
+
+timeDict = {"seconds": 1, "minutes": 60, "hours": 3600}
 
 class localSun:
     
@@ -196,7 +168,6 @@ class localSun:
     
     def __init__(self, clat=clat0, lon=lon0, time = time0, tilt = tilt0, start = start0, \
                  day = day0, year = year0, ecc = 0, units = "minutes"):
-        
         
         # np.arange('2005-02-01', '2005-02-02', dtype='datetime64[h]'), Lots of datetime objects, fast too
         # /np.timedelta64(1,'s') # Tällä tavalla voin saada arrayn jossa vaan lukuja datetime objektien sijaan
@@ -219,14 +190,54 @@ class localSun:
         self.dt = (time-start)/np.timedelta64(1,'s') # Time difference in seconds
         self.tiltVec = tiltV(tilt) 
         self.orientD = self.dt%self.day/self.day*2*np.pi # Day orientation.
-        # CHANGE orientY WHEN ELLIPTICAL ORBIT. NOW IT'S A SIMPLE CIRCLE.
         
-        #ellipticalPar = ellipticalOrbit(self.ecc, )
-        timeIdx = self.dt/timeDict[units] # Time indices. For example 27660 is the 461th minute
+        # CHANGE orientY WHEN ELLIPTICAL ORBIT. NOW IT'S A SIMPLE CIRCLE.
+
         self.orientY = self.dt%self.year/self.year*2*np.pi # Year orientation.
+
+        self.timeIdx = self.dt # Time indices. For example 27660 is the 461th minute
+        
+        def read_orient(): # Reads the orientations and returns the indices
+            
+            angles = np.zeros(len(time))
+            
+            if self.ecc == 0: # If the eccentricity is 0, just use the analytical expression
+                return self.dt%self.year/self.year*2*np.pi
+            
+            if len(time) == 1: # If just one time, calculate simply without wasting time.
+                return ellipticalOrbit(self.ecc, self.dt/self.year * 2*np.pi)[1]
+            
+            if self.ecc == 0.0167: # If eccentricity matches Earth's, read that file. Otherwise read the file
+                fileName = "Earth0167.txt"
+            else:
+                fileName = "ecc0{}.txt".format(int(10*self.ecc))
+                
+            try:
+                file_path = os.getcwd() + "\\Eccentricities\\" + fileName
+                
+                i = 0
+                j = 0
+                
+                with open(file_path) as infile:
+                    for line in infile:
+                                                
+                        if i in self.timeIdx:
+                            angles[j] = float(line)
+                            j += 1
+                        i += 1
+                        
+                        if j == len(time):
+                            break
+                        
+            except OSError:
+                print("Failure in reading file!")
+            
+            return angles
+        
+        self.angleY = read_orient()
         
         # Default offset angle measured from the chosen midday.
-        midStart = np.datetime64('2018-12-22T12:00:00', 's')
+        midStart = np.datetime64('2018-12-21T12:00:00', 's')
         self.yearDefault = (self.start- midStart)/np.timedelta64(1, 's')*2*np.pi/self.year # Default year orientation
         self.default = (self.start - midStart)/np.timedelta64(1,'s')/self.day * 2*np.pi - self.yearDefault
            
@@ -234,11 +245,7 @@ class localSun:
         Directional vectors with the Sun-Earth system
         """
         self.sunV = sunV(self.orientY) # Direction of the Earth along the xy-plane  
-      
-    """
-    Methods that were initially in the __init__ function
-    """    
-    
+          
     """
     Normal methods
     """
